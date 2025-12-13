@@ -1,35 +1,51 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
-export const generateGuidance = async (symptoms, duration, ageGroup) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
+export const generateGuidance = async (
+  symptoms,
+  duration,
+  age,
+  visualIndicators = {}
+) => {
   const prompt = `
 You are a health awareness assistant.
 
 STRICT RULES:
 - Do NOT diagnose diseases
 - Do NOT prescribe medicines
-- Provide awareness and early guidance only
-- Encourage medical consultation when symptoms persist
+- Provide early awareness and guidance only
+- Be concise and clear
 
-User details:
+User Inputs:
 Symptoms: ${symptoms}
 Duration: ${duration}
-Age Group: ${ageGroup}
+Age: ${age}
 
-Respond with:
-1. Possible common illness awareness (non-diagnostic)
-2. Warning signs 🚨
-3. When to visit hospital
-4. Do’s and Don’ts
-5. Home-care & hydration guidance
+Facial Visual Indicators (non-diagnostic):
+- Fatigue indicator: ${visualIndicators.fatigue_indicator ?? "N/A"}
+- Nose redness level: ${visualIndicators.nose_redness_level ?? "N/A"}
 
-End with this exact sentence:
+Tasks:
+• Explain possible causes (awareness only)
+• Mention warning signs 🚨
+• Suggest when to visit hospital
+• Give do’s and don’ts
+
+End with:
 "This system does not diagnose diseases or replace doctors."
 `;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.3,
+    max_tokens: 250
+  });
+
+  return completion.choices[0].message.content;
 };
