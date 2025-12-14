@@ -32,20 +32,12 @@ The system focuses **only on health awareness and early guidance**, not diagnosi
 - Age group (Child / Adult / Elderly)
 
 ###  GenAI Outputs
-- Awareness about **common illness categories** (non-diagnostic):
-  - Viral Fever
-  - Seasonal Flu
-  - Dengue (awareness only)
-  - Chikungunya (awareness only)
-  - Typhoid (awareness only)
 - Early warning signs 
 - Symptom severity awareness (Mild / Monitor / Seek Care)
+- Facial Analysis
 - When to visit a hospital
 - Do’s and Don’ts
-- Home-care precautions
-- Hydration and rest guidance
 - Emergency red flags
-
 ---
 
 ##  Example Use Case
@@ -60,25 +52,27 @@ The system focuses **only on health awareness and early guidance**, not diagnosi
 
 ###  Frontend
 - React.js
-- Tailwind CSS / CSS
+- Bootsrap/CSS
 
 ###  Backend
 - Node.js
 - Express.js
 - RESTful APIs for GenAI interaction
 
-###  Database
-- MongoDB
-- Stores:
-  - Anonymous symptom inputs
-
 ###  GenAI Integration
-- OpenAI / Gemini API
+- Groq API
 - Carefully prompt-engineered for **health awareness only**
 - Safety-filtered outputs with disclaimers
 
 ---
-
+###Data Flow Architecture
+React (UI)
+   ↓
+Node.js (API Gateway)
+   ↓
+Groq AI (Health Guidance)
+   ↓
+Flask + OpenCV (Facial Analysis)
 
 ##  Project Structure
 
