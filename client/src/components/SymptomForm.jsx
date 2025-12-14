@@ -1,25 +1,30 @@
 import { useState, useRef } from "react";
+import api from "../api";
 
-const SymptomForm = ({ onSubmit, loading }) => {
+export default function SymptomForm({ onSubmit }) {
   const [symptoms, setSymptoms] = useState("");
   const [duration, setDuration] = useState("");
   const [age, setAge] = useState("");
+  const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
 
   const recognitionRef = useRef(null);
 
+  // 🎤 Start Speech Recognition
   const startListening = () => {
     if (!("webkitSpeechRecognition" in window)) {
-      alert("Speech recognition not supported in this browser");
+      alert("Speech recognition is not supported in this browser.");
       return;
     }
 
     const recognition = new window.webkitSpeechRecognition();
-    recognition.lang = "en-IN";
+    recognition.lang = "en-US";
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.onstart = () => setListening(true);
+    recognition.onstart = () => {
+      setListening(true);
+    };
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
@@ -28,87 +33,123 @@ const SymptomForm = ({ onSubmit, loading }) => {
       );
     };
 
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onerror = () => {
+      setListening(false);
+    };
 
-    recognition.start();
+    recognition.onend = () => {
+      setListening(false);
+    };
+
     recognitionRef.current = recognition;
+    recognition.start();
   };
 
-  const handleSubmit = (e) => {
+  // 🚀 Submit Form
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit({ symptoms, duration, age });
+    setLoading(true);
+
+    const payload = {
+      symptoms,
+      duration,
+      age,
+    };
+
+    try {
+      const res = await api.post("/api/ai/guidance", payload);
+      onSubmit(res.data);
+    } catch (err) {
+      console.error(err);
+      alert("Backend not reachable. Please check server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      {/* Symptoms */}
-      <div className="mb-3">
-        <label className="form-label fw-semibold">
-          Symptoms (Type or Speak)
-        </label>
+    <div className="card mt-4">
+      <div className="card-header bg-primary text-white text-center fw-semibold">
+        📝 Symptom Checker
+      </div>
 
-        <div className="input-group">
-          <textarea
-            className="form-control"
-            rows="3"
-            placeholder="e.g., fever, headache"
-            value={symptoms}
-            onChange={(e) => setSymptoms(e.target.value)}
-            required
-          />
+      <div className="card-body">
+        <form onSubmit={handleSubmit}>
+          {/* Symptoms */}
+          <div className="mb-3">
+            <label className="form-label fw-semibold">
+              Describe Symptoms
+            </label>
 
+            <div className="d-flex gap-2">
+              <textarea
+                className="form-control"
+                rows="3"
+                placeholder="e.g. fever, headache, cold"
+                value={symptoms}
+                onChange={(e) => setSymptoms(e.target.value)}
+                required
+              />
+
+              <button
+                type="button"
+                className={`btn ${
+                  listening ? "btn-danger" : "btn-outline-secondary"
+                }`}
+                onClick={startListening}
+                title="Speak symptoms"
+              >
+                🎤
+              </button>
+            </div>
+
+            {listening && (
+              <small className="text-danger">
+                Listening... speak now
+              </small>
+            )}
+          </div>
+
+          {/* Duration */}
+          <div className="mb-3">
+            <label className="form-label fw-semibold">
+              Duration (days)
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              placeholder="e.g. 3"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Age */}
+          <div className="mb-4">
+            <label className="form-label fw-semibold">
+              Age (years)
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              placeholder="e.g. 25"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Submit */}
           <button
-            type="button"
-            className={`btn ${
-              listening ? "btn-danger" : "btn-outline-primary"
-            }`}
-            onClick={startListening}
+            type="submit"
+            className="btn btn-primary w-100 btn-lg"
             disabled={loading}
           >
-            {listening ? "Listening..." : "🎤 Speak"}
+            {loading ? "Analyzing..." : "Get Guidance"}
           </button>
-        </div>
+        </form>
       </div>
-
-      {/* Duration */}
-      <div className="mb-3">
-        <label className="form-label fw-semibold">Duration</label>
-        <input
-          type="text"
-          className="form-control"
-          placeholder="e.g., 3 days"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-          required
-        />
-      </div>
-
-      {/* Age */}
-      <div className="mb-4">
-        <label className="form-label fw-semibold">Age</label>
-        <input
-          type="number"
-          className="form-control"
-          min="0"
-          max="120"
-          placeholder="Enter age"
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
-          required
-        />
-      </div>
-
-      {/* Submit */}
-      <button
-        type="submit"
-        className="btn btn-primary w-100 fw-semibold"
-        disabled={loading}
-      >
-        {loading ? "Processing..." : "Get Guidance"}
-      </button>
-    </form>
+    </div>
   );
-};
-
-export default SymptomForm;
+}

@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #f5f9ff, #eef6f3);
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: #333;
+}
+
+/* Card polish only — NO layout logic here */
+.card {
+  border-radius: 18px !important;
+  border: none !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;
+}
+
+.card-header {
+  border-radius: 18px 18px 0 0 !important;
+}
+
+header {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+.btn {
+  border-radius: 10px;
+}
+
+.alert {
+  border-radius: 14px;
+}
+
+.disclaimer {
+  font-size: 0.85rem;
+  color: #666;
+}
