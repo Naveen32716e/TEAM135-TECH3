@@ -52,7 +52,7 @@ The system focuses **only on health awareness and early guidance**, not diagnosi
 
 ###  Frontend
 - React.js
-- Bootsrap/CSS
+- Bootstrap/CSS
 
 ###  Backend
 - Node.js
