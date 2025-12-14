@@ -2,40 +2,105 @@ import { useState } from "react";
 import AppHeader from "./components/AppHeader";
 import Disclaimer from "./components/Disclaimer";
 import SymptomForm from "./components/SymptomForm";
+import CameraCapture from "./components/CameraCapture";
 import ResultLayout from "./components/ResultLayout";
+import api from "./api";
 
 export default function App() {
   const [accepted, setAccepted] = useState(false);
-  const [result, setResult] = useState(null);
 
-  return (
-    <>
-      {/* 🔥 FULL-WIDTH HEADER */}
-      <AppHeader />
+  // 📝 USER INPUT (ONLY symptoms, duration, age)
+  const [formData, setFormData] = useState(null);
 
-      {/* 🔥 CENTERED CONTENT */}
-      <div className="container-fluid min-vh-100 d-flex justify-content-center pt-4">
-        <div className="row w-100 justify-content-center">
-          <div className="col-12 col-sm-10 col-md-8 col-lg-6">
+  // 📸 Camera state
+  const [showCamera, setShowCamera] = useState(false);
 
-            {!accepted && (
-              <Disclaimer onAccept={() => setAccepted(true)} />
-            )}
+  // 📊 FINAL AI RESULT
+  const [finalResult, setFinalResult] = useState(null);
 
-            {accepted && !result && (
-              <SymptomForm onSubmit={setResult} />
-            )}
-
-            {accepted && result && (
-              <ResultLayout
-                data={result.guidance}
-                onReset={() => setResult(null)}
-              />
-            )}
-
-          </div>
+  /* ---------------- DISCLAIMER PAGE ---------------- */
+  if (!accepted) {
+    return (
+      <>
+        <AppHeader />
+        <div className="d-flex justify-content-center align-items-center min-vh-100">
+          <Disclaimer onAccept={() => setAccepted(true)} />
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
+
+  /* ---------------- SYMPTOM FORM PAGE ---------------- */
+  if (!showCamera && !finalResult) {
+    return (
+      <>
+        <AppHeader />
+        <div className="d-flex justify-content-center align-items-center min-vh-100">
+          <SymptomForm
+            onSubmit={(data) => {
+              console.log("📝 FORM DATA:", data); // MUST show symptoms/duration/age
+              setFormData(data);                  // ✅ ONLY FORM DATA
+              setShowCamera(true);               // open camera
+            }}
+          />
+        </div>
+      </>
+    );
+  }
+
+  /* ---------------- CAMERA PAGE ---------------- */
+  if (showCamera && !finalResult) {
+    return (
+      <>
+        <AppHeader />
+        <div className="d-flex justify-content-center align-items-center min-vh-100">
+          <CameraCapture
+            onCapture={async (visualIndicators) => {
+              try {
+                const payload = {
+                  symptoms: formData.symptoms,
+                  duration: formData.duration,
+                  age: formData.age,
+                  visualIndicators,
+                };
+
+                console.log("📤 PAYLOAD TO BACKEND:", payload);
+
+                const res = await api.post("/api/ai/guidance", payload);
+
+                setFinalResult({
+                  guidance: res.data.guidance,
+                  visualIndicators,
+                });
+              } catch (err) {
+                console.error(err);
+                alert("Failed to fetch AI guidance");
+              }
+            }}
+          />
+        </div>
+      </>
+    );
+  }
+
+  /* ---------------- RESULT PAGE ---------------- */
+  if (finalResult) {
+    return (
+      <>
+        <AppHeader />
+        <div className="d-flex justify-content-center align-items-center min-vh-100">
+          <ResultLayout
+            data={finalResult}
+            onReset={() => {
+              setFinalResult(null);
+              setFormData(null);
+              setShowCamera(false);
+            }}
+          />
+        </div>
+      </>
+    );
+  }
+
+  return null;
 }
