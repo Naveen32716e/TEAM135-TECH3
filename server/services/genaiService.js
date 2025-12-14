@@ -1,51 +1,95 @@
 import Groq from "groq-sdk";
 
+// Initialize Groq client
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+/**
+ * Generate health awareness guidance (NOT diagnosis)
+ */
 export const generateGuidance = async (
   symptoms,
   duration,
-  age,
-  visualIndicators = {}
+  age
 ) => {
+  // 🔹 Prompt forcing STRICT JSON
   const prompt = `
 You are a health awareness assistant.
 
 STRICT RULES:
-- Do NOT diagnose diseases
+- This is NOT diagnosis
 - Do NOT prescribe medicines
-- Provide early awareness and guidance only
-- Be concise and clear
+- Provide early awareness & guidance only
+- Respond ONLY in valid JSON
+- Do NOT include markdown
+- Do NOT include extra text
 
-User Inputs:
+Return JSON in EXACT format:
+
+{
+  "severity": "Monitor | Consult Doctor | Emergency",
+  "summary": "Short clear summary",
+  "redFlags": ["..."],
+  "categories": ["..."],
+  "dos": ["..."],
+  "donts": ["..."]
+}
+
+User Input:
 Symptoms: ${symptoms}
-Duration: ${duration}
-Age: ${age}
-
-Facial Visual Indicators (non-diagnostic):
-- Fatigue indicator: ${visualIndicators.fatigue_indicator ?? "N/A"}
-- Nose redness level: ${visualIndicators.nose_redness_level ?? "N/A"}
-
-Tasks:
-• Explain possible causes (awareness only)
-• Mention warning signs 🚨
-• Suggest when to visit hospital
-• Give do’s and don’ts
-
-End with:
-"This system does not diagnose diseases or replace doctors."
+Duration: ${duration} days
+Age: ${age} years
 `;
 
-  const completion = await groq.chat.completions.create({
-    model: "llama-3.1-8b-instant",
-    messages: [
-      { role: "user", content: prompt }
-    ],
-    temperature: 0.3,
-    max_tokens: 250
-  });
+  try {
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 300,
+    });
 
-  return completion.choices[0].message.content;
+    const rawText = completion.choices[0].message.content;
+
+    // 🔹 Parse JSON safely
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (parseError) {
+      // Fallback: never crash frontend
+      parsed = {
+        severity: "Monitor",
+        summary: rawText,
+        redFlags: [],
+        categories: [],
+        dos: [],
+        donts: [],
+      };
+    }
+
+    // 🔹 Final safety check (ensure arrays)
+    return {
+      severity: parsed.severity || "Monitor",
+      summary: parsed.summary || "",
+      redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
+      categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+      dos: Array.isArray(parsed.dos) ? parsed.dos : [],
+      donts: Array.isArray(parsed.donts) ? parsed.donts : [],
+    };
+
+  } catch (error) {
+    console.error("GROQ AI ERROR 👉", error.message);
+
+    // 🔹 Absolute fallback
+    return {
+      severity: "Monitor",
+      summary:
+        "Unable to generate AI guidance at the moment. Please consult a healthcare professional if symptoms persist.",
+      redFlags: [],
+      categories: [],
+      dos: [],
+      donts: [],
+    };
+  }
 };
