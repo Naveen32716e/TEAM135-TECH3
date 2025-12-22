@@ -49,7 +49,7 @@ router.post("/analyze-face", async (req, res) => {
 
     // 🔗 Forward image to Flask OpenCV service
     const response = await axios.post(
-      "http://localhost:5002/analyze",
+      "https://genaii-health-cv.onrender.com/analyze",
       { image },
       {
         headers: {
